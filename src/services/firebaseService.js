@@ -1,5 +1,5 @@
 import { db, analytics } from '../firebase/config';
-import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
 // Guardar conversación en Firebase
@@ -36,6 +36,18 @@ export const saveConversation = async (conversationData) => {
       });
     }
     
+    throw error;
+  }
+};
+
+// NUEVO: Actualizar conversación con la URL del PDF
+export const updateConversationWithPdf = async (conversationId, pdfUrl) => {
+  try {
+    const conversationRef = doc(db, 'conversations', conversationId);
+    await updateDoc(conversationRef, { pdfUrl });
+    return true;
+  } catch (error) {
+    console.error('Error al actualizar la conversación con el PDF:', error);
     throw error;
   }
 };
