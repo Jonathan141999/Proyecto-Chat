@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas para la colección de conversaciones
+    match /conversations/{document} {
+      // Permitir lectura y escritura para todos (modo desarrollo)
+      // En producción, deberías usar reglas más restrictivas
+      allow read, write: if true;
+      
+      // Ejemplo de reglas más restrictivas para producción:
+      // allow read, write: if request.auth != null;
+      // allow read: if true; // Solo lectura pública
+      // allow write: if request.auth != null; // Escritura solo para usuarios autenticados
+    }
+    
+    // Reglas para futuras colecciones
+    match /{document=**} {
+      allow read, write: if false; // Denegar acceso por defecto
+    }
+  }
+} 
