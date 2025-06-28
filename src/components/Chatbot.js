@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { tramites, resultados } from '../data/tramites';
 import { saveConversation, updateConversationWithPdf, trackTramiteSelection, trackConversationStart } from '../services/firebaseService';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+// import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import './Chatbot.css';
 
 const userQuestions = [
@@ -31,11 +31,11 @@ const Chatbot = () => {
   const [inputValue, setInputValue] = useState('');
   const [inputError, setInputError] = useState('');
   const messagesEndRef = useRef(null);
-  const [pdfUploading, setPdfUploading] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [pdfError, setPdfError] = useState('');
-  const [conversationId, setConversationId] = useState(null);
-  const [selectedPdf, setSelectedPdf] = useState(null);
+  // const [pdfUploading, setPdfUploading] = useState(false);
+  // const [pdfUrl, setPdfUrl] = useState(null);
+  // const [pdfError, setPdfError] = useState('');
+  // const [conversationId, setConversationId] = useState(null);
+  // const [selectedPdf, setSelectedPdf] = useState(null);
 
   // Validación básica para cada campo
   const validateInput = (key, value) => {
@@ -63,7 +63,7 @@ const Chatbot = () => {
         },
       ]);
     }
-  }, []);
+  }, [messages.length]);
 
   // Manejar input del usuario para datos personales
   const handleUserInput = (e) => {
@@ -176,7 +176,6 @@ const Chatbot = () => {
           user: userData,
           timestamp: new Date(),
         });
-        setConversationId(convId);
       } catch (error) {
         console.error('Error al guardar la conversación:', error);
       }
@@ -259,6 +258,7 @@ const Chatbot = () => {
   };
 
   // Subida de PDF a Firebase Storage
+  /*
   const handlePdfFileChange = (e) => {
     setPdfError('');
     setSelectedPdf(null);
@@ -303,6 +303,7 @@ const Chatbot = () => {
       setPdfUploading(false);
     }
   };
+  */
 
   return (
     <Container fluid className="chatbot-container">
@@ -373,8 +374,9 @@ const Chatbot = () => {
                     {/* El flujo de preguntas ya está en los mensajes */}
                     {isComplete && (
                       <>
-                        {/* Subida de PDF al finalizar */}
+                        {/* Subida de PDF al finalizar - COMENTADO */}
                         <div className="conversation-actions">
+                          {/* 
                           <Form.Group controlId="pdfUpload" className="mb-2">
                             <Form.Label><b>Sube tu documento en PDF:</b></Form.Label>
                             <Form.Control type="file" accept="application/pdf" onChange={handlePdfFileChange} disabled={pdfUploading} />
@@ -387,6 +389,7 @@ const Chatbot = () => {
                             {pdfError && <div className="text-danger mt-1">{pdfError}</div>}
                             {pdfUrl && <div className="text-success mt-1">PDF subido correctamente.</div>}
                           </Form.Group>
+                          */}
                           <Button variant="primary" onClick={resetConversation} className="w-100 mt-2">
                             <i className="fas fa-redo me-2"></i>
                             Iniciar nuevo trámite

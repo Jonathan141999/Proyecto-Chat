@@ -1,5 +1,5 @@
 import { db, analytics } from '../firebase/config';
-import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, /* doc, updateDoc */ } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
 // Guardar conversación en Firebase
@@ -40,7 +40,8 @@ export const saveConversation = async (conversationData) => {
   }
 };
 
-// NUEVO: Actualizar conversación con la URL del PDF
+// NUEVO: Actualizar conversación con la URL del PDF - COMENTADO
+/*
 export const updateConversationWithPdf = async (conversationId, pdfUrl) => {
   try {
     const conversationRef = doc(db, 'conversations', conversationId);
@@ -51,6 +52,7 @@ export const updateConversationWithPdf = async (conversationId, pdfUrl) => {
     throw error;
   }
 };
+*/
 
 // Obtener estadísticas de conversaciones
 export const getConversationStats = async () => {
