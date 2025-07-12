@@ -397,7 +397,7 @@ const Chatbot = () => {
 
   const handleContinueOption = async (action) => {
     if (action === 'continue') {
-      // Preguntar si usar los mismos datos del usuario
+      // Crear un nuevo caso inmediatamente con los datos actuales del usuario
       const continueMessage = {
         id: Date.now(),
         type: 'user',
@@ -425,25 +425,19 @@ const Chatbot = () => {
         setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
         setCaseNumber(newCaseNumber);
         setUserData(usuarioActualizado);
-        const botMessage = {
-          id: Date.now() + 1,
-          type: 'bot',
-          content: `¡Perfecto! Bienvenido ${getNombreSeguro(usuarioActualizado)} ${getApellidoSeguro(usuarioActualizado)}. Caso: ${newCaseNumber}`,
-          timestamp: new Date(),
-        };
-        const tramitesMessage = {
-          id: Date.now() + 2,
-          type: 'bot',
-          content: '¿Te gustaría usar los mismos datos personales o ingresar nuevos datos?',
-          options: [
-            { texto: 'Usar mismos datos', action: 'same_data' },
-            { texto: 'Ingresar nuevos datos', action: 'new_data' }
-          ],
-          timestamp: new Date(),
-          messageType: 'data-choice'
-        };
-        setMessages((prev) => [...prev, botMessage, tramitesMessage]);
-        setShowContinueOptions(false);
+        setChatStep('tramites');
+        setTimeout(() => {
+          const botMessage = {
+            id: Date.now() + 1,
+            type: 'bot',
+            content: `¡Perfecto! Bienvenido ${getNombreSeguro(usuarioActualizado)} ${getApellidoSeguro(usuarioActualizado)}. Caso: ${newCaseNumber}`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, botMessage]);
+          setCurrentTramite(null);
+          setIsComplete(false);
+          setUserStep('tramites');
+        }, 500);
       }, 500);
     } else if (action === 'finish') {
       // Finalizar chat
@@ -556,7 +550,7 @@ const Chatbot = () => {
     setCaseNumber('');
     setCurrentTramite(null);
     setIsComplete(false);
-    
+    setChatStep('data-collection'); // <-- Corrige el flujo para mostrar solo las preguntas
     setTimeout(() => {
       const botMessage = {
         id: Date.now() + 1,
