@@ -1,6 +1,418 @@
 import { db, analytics } from '../firebase/config';
-import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, /* doc, updateDoc */ } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, doc, updateDoc, getDoc, limit } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
+
+// Generar número de caso automático
+export const generateCaseNumber = () => {
+  const timestamp = Date.now();
+  const random = Math.floor(Math.random() * 1000);
+  const year = new Date().getFullYear();
+  return `CAS-${year}-${timestamp}-${random}`;
+};
+
+// Crear nuevo caso
+export const createNewCase = async (userData) => {
+  try {
+    const caseNumber = generateCaseNumber();
+    const casesRef = collection(db, 'cases');
+    // Normaliza la cédula
+    const cleanCedula = String(userData.cedula).trim();
+    const newCase = {
+      caseNumber,
+      userData: { ...userData, cedula: cleanCedula },
+      tramites: [],
+      status: 'active',
+      createdAt: serverTimestamp(),
+      lastInteraction: serverTimestamp(),
+      totalTramites: 0,
+      notes: '',
+      isActive: true
+    };
+    const docRef = await addDoc(casesRef, newCase);
+    // Track analytics
+    if (analytics) {
+      logEvent(analytics, 'case_created', {
+        case_number: caseNumber,
+        user_cedula: cleanCedula
+      });
+    }
+    return { caseId: docRef.id, caseNumber };
+  } catch (error) {
+    console.error('Error al crear caso:', error);
+    throw error;
+  }
+};
+
+// Buscar caso por número
+export const searchCaseByNumber = async (caseNumber) => {
+  try {
+    const casesRef = collection(db, 'cases');
+    const q = query(casesRef, where('caseNumber', '==', caseNumber));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    const caseData = querySnapshot.docs[0].data();
+    
+    // Track analytics
+    if (analytics) {
+      logEvent(analytics, 'case_searched', {
+        case_number: caseNumber,
+        found: true
+      });
+    }
+    
+    return { id: querySnapshot.docs[0].id, ...caseData };
+  } catch (error) {
+    console.error('Error al buscar caso:', error);
+    throw error;
+  }
+};
+
+// Buscar usuario por cédula (caso más reciente)
+export const searchUserByCedula = async (cedula) => {
+  try {
+    const cleanCedula = String(cedula).trim();
+    const casesRef = collection(db, 'cases');
+    const q = query(
+      casesRef, 
+      where('userData.cedula', '==', cleanCedula),
+      orderBy('lastInteraction', 'desc'),
+      limit(1)
+    );
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      // Para propósitos de prueba, crear un caso de demostración si la cédula es "1234567890"
+      if (cleanCedula === '1234567890') {
+        console.log('Creando caso de demostración para cédula de prueba...');
+        return await createDemoCase(cleanCedula);
+      }
+      return null;
+    }
+    
+    const caseDoc = querySnapshot.docs[0];
+    const caseData = { id: caseDoc.id, ...caseDoc.data() };
+    
+    // Track analytics
+    if (analytics) {
+      logEvent(analytics, 'user_searched', {
+        user_cedula: cleanCedula,
+        found: true
+      });
+    }
+    
+    return caseData;
+  } catch (error) {
+    console.error('Error al buscar usuario:', error);
+    throw error;
+  }
+};
+
+// Obtener todos los casos de un usuario por cédula
+export const getUserCasesByCedula = async (cedula) => {
+  try {
+    const casesRef = collection(db, 'cases');
+    const q = query(
+      casesRef, 
+      where('userData.cedula', '==', cedula),
+      orderBy('lastInteraction', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    
+    const cases = [];
+    querySnapshot.forEach((doc) => {
+      cases.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Track analytics
+    if (analytics) {
+      logEvent(analytics, 'user_cases_loaded', {
+        user_cedula: cedula,
+        cases_count: cases.length
+      });
+    }
+    
+    return cases;
+  } catch (error) {
+    console.error('Error al obtener casos del usuario:', error);
+    throw error;
+  }
+};
+
+// Actualizar datos del usuario en caso existente
+export const updateUserDataInCase = async (caseId, updatedUserData) => {
+  try {
+    const caseRef = doc(db, 'cases', caseId);
+    await updateDoc(caseRef, {
+      userData: updatedUserData,
+      lastInteraction: serverTimestamp()
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error al actualizar datos del usuario:', error);
+    throw error;
+  }
+};
+
+// Cerrar caso (marcar como completado y cerrado)
+export const closeCase = async (caseId) => {
+  try {
+    const caseRef = doc(db, 'cases', caseId);
+    await updateDoc(caseRef, {
+      status: 'closed',
+      completedAt: serverTimestamp(),
+      lastInteraction: serverTimestamp()
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error al cerrar caso:', error);
+    throw error;
+  }
+};
+
+// Crear caso de demostración
+export const createDemoCase = async (cedula) => {
+  try {
+    const caseNumber = generateCaseNumber();
+    const casesRef = collection(db, 'cases');
+    
+    const demoCase = {
+      caseNumber,
+      userData: {
+        nombre: 'Juan',
+        apellido: 'Pérez',
+        cedula: cedula,
+        telefono: '0987654321',
+        correo: 'juan.perez@email.com'
+      },
+      tramites: [
+        {
+          id: 'licencia_conducir',
+          nombre: 'Licencia de Conducir',
+          status: 'completed',
+          result: 'aprobado',
+          completedAt: new Date(Date.now() - 86400000).toISOString() // 1 día atrás
+        },
+        {
+          id: 'certificado_residencia',
+          nombre: 'Certificado de Residencia',
+          status: 'completed',
+          result: 'aprobado',
+          completedAt: new Date(Date.now() - 172800000).toISOString() // 2 días atrás
+        }
+      ],
+      conversations: [
+        {
+          tramite: 'licencia_conducir',
+          conversationPath: [
+            { tramite: 'licencia_conducir' },
+            { question: 1 },
+            { answer: 'Sí, tengo todos los documentos' }
+          ],
+          result: 'aprobado',
+          user: {
+            nombre: 'Juan',
+            apellido: 'Pérez',
+            cedula: cedula
+          },
+          timestamp: new Date(Date.now() - 86400000),
+          messages: [
+            { type: 'bot', content: '¿Tienes todos los documentos requeridos?' },
+            { type: 'user', content: 'Sí, tengo todos los documentos' },
+            { type: 'bot', content: '¡Perfecto! Tu licencia ha sido aprobada.' }
+          ]
+        }
+      ],
+      status: 'active',
+      createdAt: new Date(Date.now() - 172800000),
+      lastInteraction: new Date(Date.now() - 86400000),
+      totalTramites: 2,
+      notes: 'Cliente frecuente, trámites completados sin problemas.',
+      isActive: true
+    };
+    
+    const docRef = await addDoc(casesRef, demoCase);
+    return { id: docRef.id, ...demoCase };
+  } catch (error) {
+    console.error('Error al crear caso de demostración:', error);
+    throw error;
+  }
+};
+
+// Actualizar caso con nuevo trámite y conversación completa
+export const updateCaseWithTramite = async (caseId, tramiteData, conversationData) => {
+  try {
+    const caseRef = doc(db, 'cases', caseId);
+    const caseDoc = await getDoc(caseRef);
+    
+    if (!caseDoc.exists()) {
+      throw new Error('Caso no encontrado');
+    }
+    
+    const currentCase = caseDoc.data();
+    const updatedTramites = [...currentCase.tramites, tramiteData];
+    
+    await updateDoc(caseRef, {
+      tramites: updatedTramites,
+      totalTramites: updatedTramites.length,
+      lastInteraction: serverTimestamp(),
+      conversations: [...(currentCase.conversations || []), conversationData]
+    });
+    
+    // Track analytics
+    if (analytics) {
+      logEvent(analytics, 'case_updated', {
+        case_number: currentCase.caseNumber,
+        tramite_id: tramiteData.id
+      });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error al actualizar caso:', error);
+    throw error;
+  }
+};
+
+// Crear nuevo caso con datos existentes del usuario
+export const createNewCaseWithExistingUser = async (userData, previousCaseNumber = null) => {
+  try {
+    const caseNumber = generateCaseNumber();
+    const casesRef = collection(db, 'cases');
+    
+    const newCase = {
+      caseNumber,
+      userData,
+      tramites: [],
+      conversations: [],
+      status: 'active',
+      createdAt: serverTimestamp(),
+      lastInteraction: serverTimestamp(),
+      totalTramites: 0,
+      notes: '',
+      isActive: true,
+      previousCase: previousCaseNumber // Referencia al caso anterior
+    };
+    
+    const docRef = await addDoc(casesRef, newCase);
+    
+    // Track analytics
+    if (analytics) {
+      logEvent(analytics, 'case_created_from_existing', {
+        case_number: caseNumber,
+        previous_case: previousCaseNumber,
+        user_cedula: userData.cedula
+      });
+    }
+    
+    return { caseId: docRef.id, caseNumber };
+  } catch (error) {
+    console.error('Error al crear caso con usuario existente:', error);
+    throw error;
+  }
+};
+
+// Generar PDF del caso
+export const generateCasePDF = async (caseData) => {
+  try {
+    // Aquí implementarías la lógica de generación de PDF
+    // Por ahora retornamos un objeto con la información estructurada
+    const pdfData = {
+      caseNumber: caseData.caseNumber,
+      userData: caseData.userData,
+      tramites: caseData.tramites,
+      conversations: caseData.conversations,
+      createdAt: caseData.createdAt,
+      lastInteraction: caseData.lastInteraction,
+      status: caseData.status
+    };
+    
+    // Track analytics
+    if (analytics) {
+      logEvent(analytics, 'pdf_generated', {
+        case_number: caseData.caseNumber
+      });
+    }
+    
+    return pdfData;
+  } catch (error) {
+    console.error('Error al generar PDF:', error);
+    throw error;
+  }
+};
+
+// Actualizar estado del caso
+export const updateCaseStatus = async (caseId, status) => {
+  try {
+    const caseRef = doc(db, 'cases', caseId);
+    await updateDoc(caseRef, {
+      status,
+      lastInteraction: serverTimestamp()
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error al actualizar estado del caso:', error);
+    throw error;
+  }
+};
+
+// Agregar nota al caso
+export const addCaseNote = async (caseId, note) => {
+  try {
+    const caseRef = doc(db, 'cases', caseId);
+    const caseDoc = await getDoc(caseRef);
+    
+    if (!caseDoc.exists()) {
+      throw new Error('Caso no encontrado');
+    }
+    
+    const currentCase = caseDoc.data();
+    const updatedNotes = currentCase.notes ? `${currentCase.notes}\n${note}` : note;
+    
+    await updateDoc(caseRef, {
+      notes: updatedNotes,
+      lastInteraction: serverTimestamp()
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error al agregar nota al caso:', error);
+    throw error;
+  }
+};
+
+// Obtener estadísticas de casos
+export const getCaseStats = async () => {
+  try {
+    const casesRef = collection(db, 'cases');
+    const querySnapshot = await getDocs(casesRef);
+    
+    const cases = [];
+    querySnapshot.forEach((doc) => {
+      cases.push(doc.data());
+    });
+    
+    const stats = {
+      totalCases: cases.length,
+      activeCases: cases.filter(c => c.status === 'active').length,
+      completedCases: cases.filter(c => c.status === 'completed').length,
+      pendingCases: cases.filter(c => c.status === 'pending').length,
+      averageTramitesPerCase: cases.length > 0 ? 
+        cases.reduce((sum, c) => sum + c.totalTramites, 0) / cases.length : 0
+    };
+    
+    return stats;
+  } catch (error) {
+    console.error('Error al obtener estadísticas de casos:', error);
+    throw error;
+  }
+};
 
 // Guardar conversación en Firebase
 export const saveConversation = async (conversationData) => {
@@ -209,7 +621,7 @@ export const getRecentConversations = async (limit = 10) => {
   }
 };
 
-// Track tramite selection
+// Tracking functions
 export const trackTramiteSelection = (tramiteId, tramiteName) => {
   if (analytics) {
     logEvent(analytics, 'tramite_selected', {
@@ -219,7 +631,6 @@ export const trackTramiteSelection = (tramiteId, tramiteName) => {
   }
 };
 
-// Track conversation start
 export const trackConversationStart = (tramiteId) => {
   if (analytics) {
     logEvent(analytics, 'conversation_started', {
@@ -228,28 +639,13 @@ export const trackConversationStart = (tramiteId) => {
   }
 };
 
-// Función para manejar errores de Firebase
 export const handleFirebaseError = (error) => {
-  // Track error analytics
+  console.error('Firebase Error:', error);
+  
   if (analytics) {
     logEvent(analytics, 'firebase_error', {
       error_code: error.code,
       error_message: error.message
     });
-  }
-  
-  switch (error.code) {
-    case 'permission-denied':
-      return 'No tienes permisos para realizar esta acción.';
-    case 'unavailable':
-      return 'El servicio no está disponible en este momento.';
-    case 'network-request-failed':
-      return 'Error de conexión. Verifica tu internet.';
-    case 'not-found':
-      return 'El recurso solicitado no fue encontrado.';
-    case 'already-exists':
-      return 'El recurso ya existe.';
-    default:
-      return 'Ocurrió un error inesperado.';
   }
 }; 

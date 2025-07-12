@@ -1,0 +1,257 @@
+.case-search-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px 0;
+}
+
+.case-search-card {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.case-search-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 20px;
+  text-align: center;
+}
+
+.case-search-header h5 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.case-number-input {
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.case-details {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 4px solid #667eea;
+}
+
+.case-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.case-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.case-info-item strong {
+  color: #495057;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.case-info-item span {
+  color: #333;
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+.case-number {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: #667eea;
+  font-size: 1.2em;
+  background-color: #e8f4fd;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid #667eea;
+}
+
+.tramites-list {
+  margin-top: 10px;
+}
+
+.tramites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.tramite-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.tramite-item:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.tramite-icon {
+  margin-right: 10px;
+  font-size: 1.2em;
+  color: #667eea;
+  width: 30px;
+  text-align: center;
+}
+
+.tramite-info {
+  flex: 1;
+}
+
+.tramite-info strong {
+  display: block;
+  color: #333;
+  font-size: 0.9em;
+  margin-bottom: 2px;
+}
+
+.tramite-info small {
+  color: #6c757d;
+  font-size: 0.8em;
+}
+
+.case-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.case-search-actions {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .case-search-container {
+    padding: 10px;
+  }
+  
+  .case-search-card {
+    margin: 0;
+    border-radius: 15px;
+  }
+  
+  .case-info-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .tramites-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .case-actions {
+    flex-direction: column;
+  }
+  
+  .case-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Animaciones */
+.case-details {
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estados de carga */
+.case-search-card .spinner-border {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Mejoras en el input */
+.case-number-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Badges personalizados */
+.badge {
+  font-size: 0.8em;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+/* Alertas personalizadas */
+.alert {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-left: 4px solid #dc3545;
+}
+
+/* Botones personalizados */
+.btn {
+  border-radius: 25px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-outline-primary {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.btn-outline-primary:hover {
+  background-color: #667eea;
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.btn-outline-secondary {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  transform: translateY(-2px);
+} 
