@@ -1,5 +1,5 @@
 import { db, analytics } from '../firebase/config';
-import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, doc, updateDoc, getDoc, limit } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, where, orderBy, doc, updateDoc, getDoc, limit, setDoc } from 'firebase/firestore';
 import { logEvent } from 'firebase/analytics';
 
 // Generar número de caso automático
@@ -647,5 +647,37 @@ export const handleFirebaseError = (error) => {
       error_code: error.code,
       error_message: error.message
     });
+  }
+}; 
+
+// Crear o actualizar usuario en la colección 'usuarios' por cédula
+export const upsertUsuarioByCedula = async (usuarioData) => {
+  try {
+    const cedula = String(usuarioData.cedula).trim();
+    const usuarioRef = doc(db, 'usuarios', cedula);
+    await setDoc(usuarioRef, {
+      ...usuarioData,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('Error al crear/actualizar usuario:', error);
+    throw error;
+  }
+};
+
+// Obtener usuario por cédula
+export const getUsuarioByCedula = async (cedula) => {
+  try {
+    const usuarioRef = doc(db, 'usuarios', String(cedula).trim());
+    const usuarioSnap = await getDoc(usuarioRef);
+    if (usuarioSnap.exists()) {
+      return usuarioSnap.data();
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error al obtener usuario:', error);
+    throw error;
   }
 }; 
