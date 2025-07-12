@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, InputGroup, Spinner, Toast, ToastContainer } from 'react-bootstrap';
 import { tramites, resultados } from '../data/tramites';
 import { 
   saveConversation, 
@@ -11,7 +11,10 @@ import {
   updateCaseWithTramite,
   searchCaseByNumber,
   searchUserByCedula,
-  closeCase
+  closeCase,
+  updateUserDataInCase, // <-- importar la función
+  upsertUsuarioByCedula, // <-- nuevo
+  getUsuarioByCedula // <-- nuevo
 } from '../services/firebaseService';
 import CaseSearch from './CaseSearch';
 import CaseConversation from './CaseConversation';
@@ -54,7 +57,9 @@ const Chatbot = () => {
   const [chatStep, setChatStep] = useState('welcome'); // welcome, cedula-choice, cedula-input, user-found, new-user, data-collection, tramites
   const [pendingCedula, setPendingCedula] = useState('');
   const [existingUserData, setExistingUserData] = useState(null);
-  
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
   // const [pdfUploading, setPdfUploading] = useState(false);
   // const [pdfUrl, setPdfUrl] = useState(null);
   // const [pdfError, setPdfError] = useState('');
@@ -400,10 +405,34 @@ const Chatbot = () => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, continueMessage]);
-      
-      setTimeout(() => {
+      setTimeout(async () => {
+        // Volver a cargar los datos del usuario desde la colección 'usuarios' usando la cédula
+        let usuarioActualizado = userData;
+        if (userData && userData.cedula) {
+          usuarioActualizado = await getUsuarioByCedula(userData.cedula) || userData;
+        }
+        // Cerrar el caso actual antes de crear uno nuevo
+        if (currentCase && currentCase.id) {
+          try {
+            await closeCase(currentCase.id);
+            console.log('Caso anterior cerrado:', currentCase.id);
+          } catch (error) {
+            console.error('Error al cerrar el caso anterior:', error);
+          }
+        }
+        // Crear un nuevo caso con la cédula del usuario actual
+        const { caseId, caseNumber: newCaseNumber } = await createNewCase({ cedula: usuarioActualizado.cedula });
+        setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
+        setCaseNumber(newCaseNumber);
+        setUserData(usuarioActualizado);
         const botMessage = {
           id: Date.now() + 1,
+          type: 'bot',
+          content: `¡Perfecto! Bienvenido ${getNombreSeguro(usuarioActualizado)} ${getApellidoSeguro(usuarioActualizado)}. Caso: ${newCaseNumber}`,
+          timestamp: new Date(),
+        };
+        const tramitesMessage = {
+          id: Date.now() + 2,
           type: 'bot',
           content: '¿Te gustaría usar los mismos datos personales o ingresar nuevos datos?',
           options: [
@@ -413,7 +442,7 @@ const Chatbot = () => {
           timestamp: new Date(),
           messageType: 'data-choice'
         };
-        setMessages((prev) => [...prev, botMessage]);
+        setMessages((prev) => [...prev, botMessage, tramitesMessage]);
         setShowContinueOptions(false);
       }, 500);
     } else if (action === 'finish') {
@@ -435,11 +464,19 @@ const Chatbot = () => {
         }
       }
       
-      setTimeout(() => {
+      setTimeout(async () => {
+        // Volver a cargar los datos del usuario desde la colección 'usuarios' usando la cédula
+        let nombre = '';
+        if (userData && userData.cedula) {
+          const usuarioActualizado = await getUsuarioByCedula(userData.cedula);
+          if (usuarioActualizado && usuarioActualizado.nombre) {
+            nombre = usuarioActualizado.nombre;
+          }
+        }
         const goodbyeMessage = {
           id: Date.now() + 1,
           type: 'bot',
-          content: `¡Gracias por usar nuestro asistente, ${userData.nombre}! Ha sido un placer ayudarte. Si necesitas más información, no dudes en volver. ¡Que tengas un excelente día! 👋`,
+          content: `¡Gracias por usar nuestro asistente${nombre ? ', ' + nombre : ''}! Ha sido un placer ayudarte. Si necesitas más información, no dudes en volver. ¡Que tengas un excelente día! 👋`,
           timestamp: new Date(),
           messageType: 'goodbye-message'
         };
@@ -465,25 +502,38 @@ const Chatbot = () => {
     if (choice === 'same_data') {
       // Crear nuevo caso con datos existentes
       try {
-        const { caseId, caseNumber: newCaseNumber } = await createNewCaseWithExistingUser(userData, currentCase?.caseNumber);
+        // Recargar los datos del usuario desde la colección 'usuarios' usando la cédula
+        let usuarioActualizado = userData;
+        if (userData && userData.cedula) {
+          usuarioActualizado = await getUsuarioByCedula(userData.cedula) || userData;
+        }
+        const { caseId, caseNumber: newCaseNumber } = await createNewCaseWithExistingUser({ cedula: usuarioActualizado.cedula }, currentCase?.caseNumber);
         setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
-        setUserData(existingUserData); // Asegúrate de que existingUserData esté actualizado
+        setUserData(usuarioActualizado);
         setChatStep('tramites');
         setTimeout(() => {
           const botMessage = {
             id: Date.now() + 1,
             type: 'bot',
-            content: `¡Perfecto! Nuevo caso creado: ${newCaseNumber} con tus datos existentes. Selecciona el trámite que deseas realizar:`,
+            content: `¡Perfecto! Bienvenido ${getNombreSeguro(usuarioActualizado)} ${getApellidoSeguro(usuarioActualizado)}. Nuevo caso creado: ${newCaseNumber}`,
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, botMessage]);
+          setTimeout(() => {
+            const tramitesMessage = {
+              id: Date.now() + 2,
+              type: 'bot',
+              content: '¿Qué trámite te gustaría realizar?',
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, tramitesMessage]);
+          }, 1000);
           setCurrentTramite(null);
           setIsComplete(false);
           setUserStep('tramites');
         }, 500);
       } catch (error) {
         console.error('Error al crear nuevo caso:', error);
-        // Continuar sin caso si hay error
         setTimeout(() => {
           const botMessage = {
             id: Date.now() + 1,
@@ -497,25 +547,25 @@ const Chatbot = () => {
           setUserStep('tramites');
         }, 500);
       }
-    } else {
-      // Resetear datos y comenzar nuevo caso
-      setUserData(initialUserData);
-      setUserStep(0);
-      setCurrentCase(null);
-      setCaseNumber('');
-      setCurrentTramite(null);
-      setIsComplete(false);
-      
-      setTimeout(() => {
-        const botMessage = {
-          id: Date.now() + 1,
-          type: 'bot',
-          content: userQuestions[0].label,
-          timestamp: new Date(),
-        };
-        setMessages([botMessage]);
-      }, 500);
+      return;
     }
+    // Resetear datos y comenzar nuevo caso
+    setUserData(initialUserData);
+    setUserStep(0);
+    setCurrentCase(null);
+    setCaseNumber('');
+    setCurrentTramite(null);
+    setIsComplete(false);
+    
+    setTimeout(() => {
+      const botMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: userQuestions[0].label,
+        timestamp: new Date(),
+      };
+      setMessages([botMessage]);
+    }, 500);
   };
 
   const resetConversation = () => {
@@ -640,17 +690,20 @@ const Chatbot = () => {
     setMessages((prev) => [...prev, cedulaMessage]);
 
     if (chatStep === 'cedula-input') {
-      // Buscar usuario existente
+      // Buscar usuario existente en la colección 'usuarios'
       try {
-        const existingCase = await searchUserByCedula(cedula);
-        if (existingCase) {
-          setExistingUserData(existingCase.userData);
+        const usuario = await getUsuarioByCedula(cedula);
+        if (usuario) {
+          setUserData(usuario);
+          setExistingUserData(usuario); // <-- Asegura que existingUserData siempre tenga el usuario encontrado
+          setCurrentCase({ cedula });
+          console.log('Usuario encontrado en colección usuarios:', usuario);
           setChatStep('user-found');
           setTimeout(() => {
             const botMessage = {
               id: Date.now() + 1,
               type: 'bot',
-              content: `¡Usuario encontrado!\n\nNombre: ${existingCase.userData.nombre}\nApellido: ${existingCase.userData.apellido}\nTeléfono: ${existingCase.userData.telefono}\nCorreo: ${existingCase.userData.correo}`,
+              content: `¡Usuario encontrado!\n\nNombre: ${usuario.nombre}\nApellido: ${usuario.apellido}\nTeléfono: ${usuario.telefono}\nCorreo: ${usuario.correo}`,
               options: [
                 { texto: 'Usar estos datos', action: 'use_existing' },
                 { texto: 'Actualizar mis datos', action: 'update_data' }
@@ -674,7 +727,6 @@ const Chatbot = () => {
           }, 500);
         }
       } catch (error) {
-        // Mostrar mensaje de error real y no continuar el flujo
         setChatStep('cedula-input');
         setTimeout(() => {
           const botMessage = {
@@ -717,15 +769,46 @@ const Chatbot = () => {
     if (choice === 'use_existing') {
       // Usar datos existentes y crear nuevo caso
       try {
-        const { caseId, caseNumber: newCaseNumber } = await createNewCaseWithExistingUser(existingUserData);
+        // Si existingUserData es null, usa userData o consulta a Firestore
+        let usuarioActualizado = existingUserData;
+        let cedula = '';
+        if (!usuarioActualizado) {
+          usuarioActualizado = userData;
+        }
+        if (!usuarioActualizado || !usuarioActualizado.cedula) {
+          // Si aún no hay datos, intenta obtener la cédula del estado actual del caso
+          cedula = currentCase && currentCase.cedula ? currentCase.cedula : '';
+          if (cedula) {
+            const usuarioBD = await getUsuarioByCedula(cedula);
+            if (usuarioBD) {
+              usuarioActualizado = usuarioBD;
+            }
+          }
+        } else {
+          cedula = usuarioActualizado.cedula;
+        }
+        if (!usuarioActualizado || !cedula) {
+          // Si aún no hay datos válidos, muestra error
+          setTimeout(() => {
+            const botMessage = {
+              id: Date.now() + 1,
+              type: 'bot',
+              content: 'No se encontraron datos válidos del usuario. Intenta de nuevo.',
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, botMessage]);
+          }, 500);
+          return;
+        }
+        const { caseId, caseNumber: newCaseNumber } = await createNewCaseWithExistingUser({ cedula });
         setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
-        setUserData(existingUserData);
+        setUserData(usuarioActualizado);
         setChatStep('tramites');
         setTimeout(() => {
           const botMessage = {
             id: Date.now() + 1,
             type: 'bot',
-            content: `¡Perfecto! Bienvenido ${existingUserData.nombre} ${existingUserData.apellido}. Nuevo caso creado: ${newCaseNumber}`,
+            content: `¡Perfecto! Bienvenido ${getNombreSeguro(usuarioActualizado)} ${getApellidoSeguro(usuarioActualizado)}. Nuevo caso creado: ${newCaseNumber}`,
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, botMessage]);
@@ -741,18 +824,17 @@ const Chatbot = () => {
         }, 500);
       } catch (error) {
         console.error('Error al crear caso:', error);
-        setUserData(existingUserData);
-        setChatStep('tramites');
         setTimeout(() => {
           const botMessage = {
             id: Date.now() + 1,
             type: 'bot',
-            content: `¡Perfecto! Bienvenido ${existingUserData.nombre} ${existingUserData.apellido}. ¿Qué trámite te gustaría realizar?`,
+            content: `¡Perfecto! Bienvenido ${getNombreSeguro(existingUserData)} ${getApellidoSeguro(existingUserData)}. ¿Qué trámite te gustaría realizar?`,
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, botMessage]);
         }, 500);
       }
+      return;
     } else {
       // Actualizar datos
       setChatStep('data-update');
@@ -762,11 +844,9 @@ const Chatbot = () => {
           type: 'bot',
           content: 'Vamos a actualizar tus datos. ¿Qué información te gustaría cambiar?',
           options: [
-            { texto: 'Nombre', action: 'update_nombre' },
-            { texto: 'Apellido', action: 'update_apellido' },
             { texto: 'Teléfono', action: 'update_telefono' },
             { texto: 'Correo', action: 'update_correo' },
-            { texto: 'Todo', action: 'update_all' }
+            { texto: 'Nuevo usuario', action: 'new_user_all' }
           ],
           timestamp: new Date(),
           messageType: 'data-update-choice'
@@ -781,31 +861,29 @@ const Chatbot = () => {
     const choiceMessage = {
       id: Date.now(),
       type: 'user',
-      content: field === 'update_all' ? 'Todo' : field.replace('update_', ''),
+      content: field === 'new_user_all' ? 'Nuevo usuario' : field.replace('update_', ''),
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, choiceMessage]);
 
-    if (field === 'update_all') {
-      setChatStep('data-collection');
+    if (field === 'new_user_all') {
+      // Redirigir al flujo de registro de nuevo usuario
+      setUserData(initialUserData);
       setUserStep(0);
+      setCurrentCase(null);
+      setCaseNumber('');
+      setCurrentTramite(null);
+      setIsComplete(false);
       setTimeout(() => {
         const botMessage = {
           id: Date.now() + 1,
           type: 'bot',
-          content: 'Perfecto, vamos a actualizar todos tus datos. Empecemos:',
+          content: 'Por favor, ingresa tu número de cédula:',
           timestamp: new Date(),
+          messageType: 'cedula-input'
         };
-        setMessages((prev) => [...prev, botMessage]);
-        setTimeout(() => {
-          const questionMessage = {
-            id: Date.now() + 2,
-            type: 'bot',
-            content: userQuestions[0].label,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, questionMessage]);
-        }, 1000);
+        setMessages([botMessage]);
+        setChatStep('new-user-cedula');
       }, 500);
     } else {
       // Actualizar campo específico
@@ -872,7 +950,7 @@ const Chatbot = () => {
     }
 
     if (chatStep === 'data-update-field') {
-      // Actualiza solo el campo seleccionado
+      // Actualiza solo el campo seleccionado en la colección 'usuarios'
       let newUserData = { ...userData };
       const currentQuestion = userQuestions[userStep];
       const error = validateInput(currentQuestion.key, inputValue);
@@ -891,6 +969,9 @@ const Chatbot = () => {
       // Guardar dato actualizado
       newUserData[currentQuestion.key] = inputValue;
       setUserData(newUserData);
+      // Guardar en la colección usuarios
+      await upsertUsuarioByCedula(newUserData);
+      console.log('Usuario actualizado en colección usuarios:', newUserData);
       setInputValue('');
       setInputError('');
       // Preguntar si desea actualizar otro campo
@@ -950,9 +1031,12 @@ const Chatbot = () => {
           setUserStep(nextIndex);
         }, 400);
       } else {
+        // Guardar usuario en la colección 'usuarios' antes de crear el caso
+        await upsertUsuarioByCedula(newUserData);
+        console.log('Usuario nuevo guardado en colección usuarios:', newUserData);
         // Crear nuevo caso y mostrar trámites
         try {
-          const { caseId, caseNumber: newCaseNumber } = await createNewCase(newUserData);
+          const { caseId, caseNumber: newCaseNumber } = await createNewCase({ cedula: newUserData.cedula });
           setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
           setCaseNumber(newCaseNumber);
           setChatStep('tramites');
@@ -962,7 +1046,7 @@ const Chatbot = () => {
               {
                 id: Date.now() + 2,
                 type: 'bot',
-                content: `¡Hola ${newUserData.nombre} ${newUserData.apellido}! ✅ Caso creado: ${newCaseNumber}`,
+                content: `¡Hola ${getNombreSeguro(newUserData)} ${getApellidoSeguro(newUserData)}! ✅ Caso creado: ${newCaseNumber}`,
                 timestamp: new Date(),
               },
               {
@@ -983,7 +1067,7 @@ const Chatbot = () => {
               {
                 id: Date.now() + 2,
                 type: 'bot',
-                content: `¡Hola ${newUserData.nombre} ${newUserData.apellido}! Por favor, selecciona el trámite que deseas realizar.`,
+                content: `¡Hola ${getNombreSeguro(newUserData)} ${getApellidoSeguro(newUserData)}! Por favor, selecciona el trámite que deseas realizar.`,
                 timestamp: new Date(),
               },
             ]);
@@ -995,7 +1079,7 @@ const Chatbot = () => {
   };
 
   // Maneja la opción de actualizar más campos o terminar
-  const handleUpdateMoreChoice = (choice) => {
+  const handleUpdateMoreChoice = async (choice) => {
     const choiceMessage = {
       id: Date.now(),
       type: 'user',
@@ -1005,35 +1089,59 @@ const Chatbot = () => {
     setMessages((prev) => [...prev, choiceMessage]);
 
     if (choice === 'update_more') {
-      // Vuelve a mostrar las opciones de campos a actualizar
+      setChatStep('data-update');
       setTimeout(() => {
         const botMessage = {
           id: Date.now() + 1,
           type: 'bot',
           content: '¿Qué dato deseas actualizar?',
           options: [
-            { texto: 'Nombre', action: 'update_nombre' },
-            { texto: 'Apellido', action: 'update_apellido' },
             { texto: 'Teléfono', action: 'update_telefono' },
             { texto: 'Correo', action: 'update_correo' },
-            { texto: 'Todo', action: 'update_all' }
+            { texto: 'Nuevo usuario', action: 'new_user_all' }
           ],
           timestamp: new Date(),
           messageType: 'data-update-choice'
         };
         setMessages((prev) => [...prev, botMessage]);
-        setChatStep('data-update');
       }, 500);
     } else {
-      // Termina la actualización y muestra resumen, luego pasa al chat
-      setTimeout(() => {
-        const botMessage = {
-          id: Date.now() + 1,
-          type: 'bot',
-          content: `Datos actualizados:\n\nNombre: ${userData.nombre}\nApellido: ${userData.apellido}\nTeléfono: ${userData.telefono}\nCorreo: ${userData.correo}`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, botMessage]);
+      // Guardar los datos actualizados en la colección 'usuarios' antes de mostrar el toast y crear un nuevo caso
+      if (userData && userData.cedula) {
+        // Recargar los datos del usuario desde la colección 'usuarios' usando la cédula
+        let usuarioActualizado = userData;
+        const usuarioBD = await getUsuarioByCedula(userData.cedula);
+        if (usuarioBD) {
+          usuarioActualizado = usuarioBD;
+        }
+        await upsertUsuarioByCedula(usuarioActualizado);
+        console.log('Usuario actualizado en colección usuarios (final):', usuarioActualizado);
+        // Crear un nuevo caso con la cédula actualizada
+        const { caseId, caseNumber: newCaseNumber } = await createNewCase({ cedula: usuarioActualizado.cedula });
+        setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
+        setCaseNumber(newCaseNumber);
+        setToastMessage(`Datos actualizados:\nTeléfono: ${usuarioActualizado.telefono}\nCorreo: ${usuarioActualizado.correo}`);
+        setShowToast(true);
+        setTimeout(() => {
+          const botMessage = {
+            id: Date.now() + 1,
+            type: 'bot',
+            content: `¡Perfecto! Bienvenido ${getNombreSeguro(usuarioActualizado)} ${getApellidoSeguro(usuarioActualizado)}. Caso: ${newCaseNumber}`,
+            timestamp: new Date(),
+          };
+          const tramitesMessage = {
+            id: Date.now() + 2,
+            type: 'bot',
+            content: '¿Qué trámite te gustaría realizar?',
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, botMessage, tramitesMessage]);
+          setChatStep('tramites');
+          setUserStep('tramites');
+        }, 1000);
+      } else {
+        setToastMessage('No se encontró el usuario actual para actualizar.');
+        setShowToast(true);
         setTimeout(() => {
           const tramitesMessage = {
             id: Date.now() + 2,
@@ -1045,7 +1153,7 @@ const Chatbot = () => {
           setChatStep('tramites');
           setUserStep('tramites');
         }, 1000);
-      }, 500);
+      }
     }
   };
 
@@ -1116,7 +1224,7 @@ const Chatbot = () => {
                       handleCedulaChoice(option.action);
                     } else if (option.action === 'use_existing' || option.action === 'update_data') {
                       handleUserFoundChoice(option.action);
-                    } else if (option.action.startsWith('update_')) {
+                    } else if (option.action === 'update_telefono' || option.action === 'update_correo' || option.action === 'new_user_all') {
                       handleDataUpdateChoice(option.action);
                     } else if (option.action === 'update_more' || option.action === 'finish_update') {
                       handleUpdateMoreChoice(option.action);
@@ -1320,7 +1428,7 @@ const Chatbot = () => {
                   <div ref={messagesEndRef} />
                 </div>
                 {/* Input para datos personales tipo chat con botón de enviar */}
-                {(chatStep === 'cedula-input' || chatStep === 'new-user-cedula' || chatStep === 'data-collection') && (
+                {(chatStep === 'cedula-input' || chatStep === 'new-user-cedula' || chatStep === 'data-collection' || chatStep === 'data-update-field') && (
                   <Form onSubmit={handleUserInputSubmit} className="chat-input-form">
                     <InputGroup>
                       <Form.Control
@@ -1377,12 +1485,25 @@ const Chatbot = () => {
                   </>
                 )}
               </div>
+              {/* Toast de datos actualizados */}
+              <ToastContainer position="top-end" className="p-3">
+                <Toast show={showToast} onClose={() => setShowToast(false)} delay={3500} autohide bg="success">
+                  <Toast.Header closeButton={false}>
+                    <strong className="me-auto">Datos actualizados</strong>
+                  </Toast.Header>
+                  <Toast.Body style={{ whiteSpace: 'pre-line', color: 'white' }}>{toastMessage}</Toast.Body>
+                </Toast>
+              </ToastContainer>
             </Card.Body>
           </Card>
         </Col>
       </Row>
     </Container>
   );
+
+  // Funciones utilitarias para acceso seguro
+  const getNombreSeguro = (userData) => (userData && userData.nombre ? userData.nombre : '');
+  const getApellidoSeguro = (userData) => (userData && userData.apellido ? userData.apellido : '');
 
   // Renderizar según el modo de la aplicación
   switch (appMode) {
