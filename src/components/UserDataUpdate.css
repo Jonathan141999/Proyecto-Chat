@@ -1,0 +1,294 @@
+.user-data-update-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px 0;
+}
+
+.user-data-update-card {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.user-data-update-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 20px;
+  text-align: center;
+}
+
+.user-data-update-header h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.user-data-update-header small {
+  opacity: 0.9;
+  font-size: 0.9em;
+}
+
+.user-data-update-body {
+  padding: 30px;
+  background-color: #f8f9fa;
+}
+
+/* Mensaje de actualización */
+.update-message {
+  text-align: center;
+}
+
+.update-message h6 {
+  color: #333;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.update-message p {
+  color: #6c757d;
+  font-size: 0.95em;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Encabezado de campo */
+.field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.field-header .form-label {
+  margin: 0;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95em;
+}
+
+.toggle-btn {
+  border-radius: 20px;
+  font-size: 0.8em;
+  padding: 4px 12px;
+  transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+  transform: translateY(-1px);
+}
+
+.toggle-btn.btn-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border-color: #28a745;
+}
+
+.toggle-btn.btn-success:hover {
+  background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+}
+
+/* Campos de formulario */
+.form-control {
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  padding: 12px 16px;
+  font-size: 1em;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+/* Campo de solo lectura */
+.readonly-field {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border-color: #dee2e6;
+  cursor: not-allowed;
+}
+
+.readonly-field:focus {
+  border-color: #dee2e6;
+  box-shadow: none;
+}
+
+/* Campo en edición */
+.editing-field {
+  border-color: #28a745;
+  background-color: #f8fff9;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.editing-field:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Campo con error */
+.form-control.is-invalid {
+  border-color: #dc3545;
+  background-color: #fff8f8;
+}
+
+.form-control.is-invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Texto de ayuda */
+.form-text {
+  font-size: 0.85em;
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+/* Acciones de actualización */
+.update-actions {
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.update-actions .btn {
+  border-radius: 25px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 12px 24px;
+}
+
+.update-actions .btn:hover {
+  transform: translateY(-2px);
+}
+
+.update-actions .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.update-actions .btn-primary:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.update-actions .btn:disabled {
+  opacity: 0.6;
+  transform: none;
+}
+
+/* Alertas */
+.alert {
+  border-radius: 10px;
+  border: none;
+  padding: 12px 16px;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.alert-danger i {
+  color: #dc3545;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .user-data-update-container {
+    padding: 10px;
+  }
+  
+  .user-data-update-card {
+    margin: 0;
+    border-radius: 15px;
+  }
+  
+  .user-data-update-body {
+    padding: 20px;
+  }
+  
+  .field-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .toggle-btn {
+    align-self: flex-end;
+  }
+  
+  .update-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .update-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Animaciones */
+.user-data-update-body {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estados de los campos */
+.form-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+/* Iconos en los labels */
+.form-label i {
+  width: 16px;
+  text-align: center;
+  margin-right: 8px;
+  color: #667eea;
+}
+
+/* Feedback de validación */
+.form-control-feedback {
+  font-size: 0.85em;
+  margin-top: 5px;
+}
+
+.invalid-feedback {
+  color: #dc3545;
+  font-size: 0.85em;
+  margin-top: 5px;
+}
+
+/* Efectos hover en campos editables */
+.form-control:not(.readonly-field):not(:disabled):hover {
+  border-color: #667eea;
+}
+
+/* Indicador visual de campo seleccionado */
+.form-group.has-selected .form-label {
+  color: #28a745;
+  font-weight: 700;
+}
+
+.form-group.has-selected .form-label i {
+  color: #28a745;
+} 

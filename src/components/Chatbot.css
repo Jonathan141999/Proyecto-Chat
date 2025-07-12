@@ -247,6 +247,49 @@
     font-size: 0.85em;
     padding: 10px 14px;
   }
+  
+  /* Opciones de continuar en móvil */
+  .message.continue-options .message-options {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .message.continue-options .option-button {
+    font-size: 0.9em;
+    padding: 10px 16px;
+  }
+  
+  /* Pantalla de bienvenida en móvil */
+  .welcome-section {
+    padding: 20px 15px;
+    min-height: 50vh;
+  }
+  
+  .welcome-message h5 {
+    font-size: 1.5em;
+  }
+  
+  .welcome-options {
+    max-width: 100%;
+  }
+  
+  .welcome-option-btn {
+    padding: 15px;
+    min-height: 70px;
+  }
+  
+  .option-icon {
+    font-size: 1.5em;
+    width: 40px;
+  }
+  
+  .option-content strong {
+    font-size: 1em;
+  }
+  
+  .option-content small {
+    font-size: 0.8em;
+  }
 }
 
 /* Scrollbar styling */
@@ -275,6 +318,176 @@
 
 .message.result-requisito {
   border-left: 4px solid #ffc107;
+}
+
+/* Estilos para opciones de continuar/finalizar */
+.message.continue-options .message-options {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.message.continue-options .option-button {
+  flex: 1;
+  border-radius: 25px;
+  padding: 12px 20px;
+  font-size: 1em;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 2px solid;
+}
+
+.message.continue-options .option-button:first-child {
+  border-color: #28a745;
+  background: white;
+  color: #28a745;
+}
+
+.message.continue-options .option-button:first-child:hover {
+  background: #28a745;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.message.continue-options .option-button:last-child {
+  border-color: #dc3545;
+  background: white;
+  color: #dc3545;
+}
+
+.message.continue-options .option-button:last-child:hover {
+  background: #dc3545;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* Mensaje de despedida especial */
+.message.goodbye-message {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  text-align: center;
+  padding: 20px;
+}
+
+.message.goodbye-message .message-content {
+  font-size: 1.1em;
+  line-height: 1.6;
+}
+
+/* Pantalla de bienvenida */
+.welcome-section {
+  padding: 40px 20px;
+  text-align: center;
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.welcome-message {
+  margin-bottom: 40px;
+}
+
+.welcome-message h5 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 1.8em;
+  font-weight: 600;
+}
+
+.welcome-message p {
+  font-size: 1.1em;
+  color: #6c757d;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.welcome-options {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.welcome-option-btn {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  border-radius: 15px;
+  border: 2px solid #e9ecef;
+  background: white;
+  transition: all 0.3s ease;
+  text-align: left;
+  height: auto;
+  min-height: 80px;
+}
+
+.welcome-option-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+}
+
+.welcome-option-btn.btn-primary {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.welcome-option-btn.btn-primary:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.welcome-option-btn.btn-outline-primary:hover {
+  border-color: #667eea;
+  background: #667eea;
+  color: white;
+}
+
+.welcome-option-btn.btn-outline-secondary:hover {
+  border-color: #6c757d;
+  background: #6c757d;
+  color: white;
+}
+
+.option-icon {
+  margin-right: 15px;
+  font-size: 2em;
+  width: 50px;
+  text-align: center;
+}
+
+.option-content {
+  flex: 1;
+  text-align: left;
+}
+
+.option-content strong {
+  display: block;
+  font-size: 1.1em;
+  margin-bottom: 5px;
+}
+
+.option-content small {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+/* Información del caso en el header */
+.case-info-header {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9em;
+}
+
+.case-info-header small {
+  font-weight: 500;
 }
 
 /* Loading animation */
@@ -366,4 +579,45 @@
     padding: 0 16px;
     height: 40px;
   }
+}
+
+/* Estilos para la pantalla de autenticación */
+.auth-section {
+  padding: 30px 20px;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-message {
+  margin-bottom: 30px;
+}
+
+.auth-message h6 {
+  color: #333;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.auth-message p {
+  color: #6c757d;
+  font-size: 0.95em;
+}
+
+.auth-actions {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.auth-actions .btn {
+  margin: 0 5px;
+  border-radius: 25px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.auth-actions .btn:hover {
+  transform: translateY(-2px);
 } 

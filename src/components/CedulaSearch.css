@@ -1,0 +1,433 @@
+.cedula-search-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px 0;
+}
+
+.cedula-search-card {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.cedula-search-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 20px;
+  text-align: center;
+}
+
+.cedula-search-header h4 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.cedula-search-header small {
+  opacity: 0.9;
+  font-size: 0.9em;
+}
+
+.cedula-search-body {
+  padding: 30px;
+  background-color: #f8f9fa;
+}
+
+/* Sección de formulario de búsqueda */
+.search-form-section {
+  text-align: center;
+}
+
+.search-message h6 {
+  color: #333;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.search-message p {
+  color: #6c757d;
+  font-size: 0.95em;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.search-actions {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.search-actions .btn {
+  border-radius: 25px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 12px 24px;
+}
+
+.search-actions .btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Sección de resultados */
+.search-results-section {
+  text-align: left;
+}
+
+.results-header {
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 30px;
+}
+
+.results-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.results-title h6 {
+  margin: 0;
+  color: #333;
+  font-weight: 600;
+}
+
+.results-count {
+  font-size: 0.9em;
+  padding: 6px 12px;
+}
+
+.results-header p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.95em;
+}
+
+/* Mensaje de no casos */
+.no-cases-message {
+  padding: 40px 20px;
+}
+
+.no-cases-message h6 {
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+
+.no-cases-message p {
+  color: #6c757d;
+  font-size: 0.9em;
+}
+
+/* Lista de casos */
+.cases-list {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.case-item-card {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.case-item-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.case-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.case-number {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 1.1em;
+}
+
+.status-badge {
+  font-size: 0.75em;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.case-info {
+  margin-bottom: 15px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 0.9em;
+}
+
+.info-row strong {
+  color: #495057;
+  font-weight: 600;
+}
+
+.info-row span {
+  color: #333;
+  text-align: right;
+}
+
+/* Vista previa de trámites */
+.tramites-preview {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 3px solid #667eea;
+}
+
+.tramites-preview small {
+  display: block;
+  margin-bottom: 8px;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.tramites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tramite-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.85em;
+  color: #495057;
+  padding: 4px 0;
+}
+
+.tramite-item i {
+  color: #667eea;
+  margin-right: 8px;
+  width: 12px;
+}
+
+.tramite-item .badge {
+  font-size: 0.7em;
+  padding: 2px 6px;
+}
+
+/* Acciones del caso */
+.case-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.case-actions .btn {
+  border-radius: 20px;
+  font-size: 0.85em;
+  padding: 6px 12px;
+  transition: all 0.3s ease;
+}
+
+.case-actions .btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Acciones de resultados */
+.search-results-actions {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.search-results-actions .btn {
+  border-radius: 25px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 10px 20px;
+}
+
+.search-results-actions .btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Formulario mejorado */
+.form-control {
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  padding: 12px 16px;
+  font-size: 1em;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.form-text {
+  font-size: 0.85em;
+  color: #6c757d;
+}
+
+/* Alertas */
+.alert {
+  border-radius: 10px;
+  border: none;
+  padding: 12px 16px;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.alert-danger i {
+  color: #dc3545;
+}
+
+/* Scrollbar personalizado */
+.cases-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cases-list::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.cases-list::-webkit-scrollbar-thumb {
+  background: #b3b3b3;
+  border-radius: 4px;
+}
+
+.cases-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .cedula-search-container {
+    padding: 10px;
+  }
+  
+  .cedula-search-card {
+    margin: 0;
+    border-radius: 15px;
+  }
+  
+  .cedula-search-body {
+    padding: 20px;
+  }
+  
+  .results-title {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .case-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .case-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .case-actions .btn {
+    width: 100%;
+  }
+  
+  .search-results-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .search-results-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Animaciones */
+.search-form-section,
+.search-results-section {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estados de carga */
+.case-item-card.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Efectos hover mejorados */
+.case-item-card:hover .case-number {
+  color: #764ba2;
+}
+
+.case-item-card:hover .tramites-preview {
+  background-color: #e8f4fd;
+  border-left-color: #764ba2;
+}
+
+/* Badges personalizados */
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.badge.bg-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+}
+
+.badge.bg-primary {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+}
+
+.badge.bg-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
+  color: #212529 !important;
+}
+
+.badge.bg-secondary {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+}
+
+.badge.bg-info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+} 
