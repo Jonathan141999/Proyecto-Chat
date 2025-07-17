@@ -17,8 +17,8 @@ const CedulaVerification = ({ onUserFound, onNewUser, onBack }) => {
       return;
     }
 
-    if (!/^[0-9]+$/.test(cedula)) {
-      setError('La cédula debe contener solo números');
+    if (!/^[0-9]{10}$/.test(cedula)) {
+      setError('La cédula debe tener exactamente 10 números');
       return;
     }
 
@@ -96,7 +96,11 @@ const CedulaVerification = ({ onUserFound, onNewUser, onBack }) => {
                     type="text"
                     placeholder="Ej: 1234567890"
                     value={cedula}
-                    onChange={(e) => setCedula(e.target.value)}
+                    onChange={e => {
+                      // Solo permitir números y máximo 10 dígitos
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      if (val.length <= 10) setCedula(val);
+                    }}
                     disabled={loading}
                     maxLength="10"
                     required
