@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Form, InputGroup, Spinner, Toast, ToastContainer } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Form, InputGroup, Spinner, Toast, ToastContainer, Alert } from 'react-bootstrap';
 import { tramites, resultados } from '../data/tramites';
 import { 
   saveConversation, 
@@ -66,12 +66,45 @@ const Chatbot = () => {
   // const [conversationId, setConversationId] = useState(null);
   // const [selectedPdf, setSelectedPdf] = useState(null);
 
-  // Validación básica para cada campo
+  // Función para validar nombres y apellidos
+  function isNombreValido(str) {
+    const limpio = str.trim();
+    if (limpio.length < 4) return false;
+    if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$/.test(limpio)) return false;
+    // Al menos una vocal y una consonante
+    if (!/[aeiouáéíóúAEIOUÁÉÍÓÚ]/.test(limpio)) return false;
+    if (!/[bcdfghjklmnñpqrstvwxyzBCDFGHJKLMNÑPQRSTVWXYZ]/.test(limpio)) return false;
+    // No permitir secuencias de la misma letra
+    if (/^(.)\1+$/.test(limpio.replace(/ /g, ''))) return false;
+    // No permitir patrones repetitivos tipo 'dadad', 'sasasa', 'mimimi'
+    // Detecta repeticiones de sílabas de 2 letras
+    const sinEspacios = limpio.replace(/ /g, '').toLowerCase();
+    for (let size = 2; size <= 3; size++) {
+      if (sinEspacios.length >= size * 2) {
+        const patron = sinEspacios.slice(0, size);
+        let repetido = true;
+        for (let i = 0; i < sinEspacios.length; i += size) {
+          if (sinEspacios.slice(i, i + size) !== patron) {
+            repetido = false;
+            break;
+          }
+        }
+        if (repetido) return false;
+      }
+    }
+    // Detecta alternancia tipo 'dadad', 'sasasa', 'mimimi'
+    if (/^(..)+\1$/.test(sinEspacios)) return false;
+    return true;
+  }
+
+  // Reemplazo la función validateInput para validar cada campo correctamente:
   const validateInput = (key, value) => {
     if (!value.trim()) return 'Este campo es obligatorio';
-    if (key === 'cedula' && !/^[0-9]+$/.test(value)) return 'Cédula inválida';
-    if (key === 'telefono' && !/^[0-9]{7,15}$/.test(value)) return 'Teléfono inválido';
-    if (key === 'correo' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return 'Correo inválido';
+    if (key === 'cedula' && !/^[0-9]{10}$/.test(value)) return 'La cédula debe tener exactamente 10 números';
+    if (key === 'nombre' && !isNombreValido(value)) return 'Ingresa un nombre válido (solo letras, al menos una vocal y una consonante, sin repeticiones)';
+    if (key === 'apellido' && !isNombreValido(value)) return 'Ingresa un apellido válido (solo letras, al menos una vocal y una consonante, sin repeticiones)';
+    if (key === 'telefono' && !/^09[0-9]{8}$/.test(value)) return 'El teléfono debe tener exactamente 10 números y empezar con 09';
+    if (key === 'correo' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) return 'Correo electrónico inválido';
     return '';
   };
 
@@ -93,6 +126,22 @@ const Chatbot = () => {
       ]);
     }
   }, [messages.length, appMode, chatStep]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // Si el usuario está en el flujo de registro y no ha completado todos los datos
+      if (
+        (chatStep === 'new-user-cedula' || chatStep === 'data-collection') &&
+        (!userData.nombre || !userData.apellido || !userData.telefono || !userData.correo)
+      ) {
+        e.preventDefault();
+        e.returnValue = 'Tienes un registro incompleto. Si recargas, perderás el progreso. ¿Estás seguro?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [chatStep, userData]);
 
   // Manejar input del usuario para datos personales
   const handleUserInput = (e) => {
@@ -501,7 +550,7 @@ const Chatbot = () => {
         if (userData && userData.cedula) {
           usuarioActualizado = await getUsuarioByCedula(userData.cedula) || userData;
         }
-        const { caseId, caseNumber: newCaseNumber } = await createNewCaseWithExistingUser({ cedula: usuarioActualizado.cedula }, currentCase?.caseNumber);
+        const { caseId, caseNumber: newCaseNumber } = await createNewCaseWithExistingUser(usuarioActualizado, currentCase?.caseNumber);
         setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
         setUserData(usuarioActualizado);
         setChatStep('tramites');
@@ -622,9 +671,37 @@ const Chatbot = () => {
     setAppMode('case-conversation');
   };
 
+  // Reemplazo handleCaseSelected para manejar casos activos y cerrados:
   const handleCaseSelected = (caseData) => {
     setSelectedCaseForConversation(caseData);
-    setAppMode('case-conversation');
+    if (caseData.status === 'active') {
+      // Caso activo: pasar a chat y mostrar opciones de trámite
+      setCurrentCase({ id: caseData.id, caseNumber: caseData.caseNumber });
+      setUserData(caseData.userData);
+      setAppMode('chat');
+      // Obtener las opciones de trámites disponibles
+      const tramiteOptions = Object.entries(tramites).map(([id, tramite]) => ({ texto: tramite.nombre, action: id }));
+      setMessages([
+        {
+          id: Date.now(),
+          type: 'bot',
+          content: `¡Continuando con el caso: ${caseData.caseNumber}!`,
+          timestamp: new Date(),
+        },
+        {
+          id: Date.now() + 1,
+          type: 'bot',
+          content: '¿Qué trámite te gustaría realizar?',
+          options: tramiteOptions,
+          timestamp: new Date(),
+        },
+      ]);
+      setUserStep('tramites');
+      setChatStep('tramites');
+    } else {
+      // Caso cerrado: solo mostrar detalles, no permitir continuar
+      setAppMode('case-conversation');
+    }
   };
 
   const goBackToWelcome = () => {
@@ -798,6 +875,7 @@ const Chatbot = () => {
         setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
         setUserData(usuarioActualizado);
         setChatStep('tramites');
+        const tramiteOptions = Object.entries(tramites).map(([id, tramite]) => ({ texto: tramite.nombre, action: id }));
         setTimeout(() => {
           const botMessage = {
             id: Date.now() + 1,
@@ -811,6 +889,7 @@ const Chatbot = () => {
               id: Date.now() + 2,
               type: 'bot',
               content: '¿Qué trámite te gustaría realizar?',
+              options: tramiteOptions,
               timestamp: new Date(),
             };
             setMessages((prev) => [...prev, tramitesMessage]);
@@ -900,6 +979,17 @@ const Chatbot = () => {
   const handleUserInputSubmit = async (e) => {
     e.preventDefault();
 
+    if (chatStep === 'cedula-input' || chatStep === 'new-user-cedula') {
+      if (!inputValue.trim()) {
+        setInputError('Por favor ingresa tu número de cédula');
+        return;
+      }
+      if (!/^[0-9]{10}$/.test(inputValue)) {
+        setInputError('La cédula debe tener exactamente 10 números');
+        return;
+      }
+    }
+
     if (chatStep === 'cedula-input') {
       await handleCedulaInput(inputValue.trim());
       setInputValue('');
@@ -908,13 +998,18 @@ const Chatbot = () => {
     }
 
     if (chatStep === 'new-user-cedula') {
-      // Validar cédula
       if (!inputValue.trim()) {
         setInputError('Por favor ingresa tu número de cédula');
         return;
       }
-      if (!/^[0-9]+$/.test(inputValue)) {
-        setInputError('La cédula debe contener solo números');
+      if (!/^[0-9]{10}$/.test(inputValue)) {
+        setInputError('La cédula debe tener exactamente 10 números');
+        return;
+      }
+      // Verificar si la cédula ya existe en la base de datos
+      const usuarioExistente = await getUsuarioByCedula(inputValue.trim());
+      if (usuarioExistente) {
+        setInputError('Ya existe un usuario registrado con esa cédula. Si eres tú, selecciona "Cédula Existente".');
         return;
       }
       // Agregar respuesta del usuario al chat
@@ -925,7 +1020,6 @@ const Chatbot = () => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, userMsg]);
-      // Guardar la cédula en el estado de usuario
       setUserData({ ...initialUserData, cedula: inputValue.trim() });
       setInputValue('');
       setInputError('');
@@ -1025,15 +1119,16 @@ const Chatbot = () => {
           setUserStep(nextIndex);
         }, 400);
       } else {
-        // Guardar usuario en la colección 'usuarios' antes de crear el caso
+        // Guardar usuario en la colección 'usuarios' solo cuando todos los datos están completos
         await upsertUsuarioByCedula(newUserData);
         console.log('Usuario nuevo guardado en colección usuarios:', newUserData);
         // Crear nuevo caso y mostrar trámites
         try {
-          const { caseId, caseNumber: newCaseNumber } = await createNewCase({ cedula: newUserData.cedula });
+          const { caseId, caseNumber: newCaseNumber } = await createNewCase(newUserData);
           setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
           setCaseNumber(newCaseNumber);
           setChatStep('tramites');
+          const tramiteOptions = Object.entries(tramites).map(([id, tramite]) => ({ texto: tramite.nombre, action: id }));
           setTimeout(() => {
             setMessages((prev) => [
               ...prev,
@@ -1047,6 +1142,7 @@ const Chatbot = () => {
                 id: Date.now() + 3,
                 type: 'bot',
                 content: 'Por favor, selecciona el trámite que deseas realizar:',
+                options: tramiteOptions,
                 timestamp: new Date(),
               },
             ]);
@@ -1111,7 +1207,7 @@ const Chatbot = () => {
         await upsertUsuarioByCedula(usuarioActualizado);
         console.log('Usuario actualizado en colección usuarios (final):', usuarioActualizado);
         // Crear un nuevo caso con la cédula actualizada
-        const { caseId, caseNumber: newCaseNumber } = await createNewCase({ cedula: usuarioActualizado.cedula });
+        const { caseId, caseNumber: newCaseNumber } = await createNewCase(usuarioActualizado);
         setCurrentCase({ id: caseId, caseNumber: newCaseNumber });
         setCaseNumber(newCaseNumber);
         setToastMessage(`Datos actualizados:\nTeléfono: ${usuarioActualizado.telefono}\nCorreo: ${usuarioActualizado.correo}`);
@@ -1161,6 +1257,7 @@ const Chatbot = () => {
     setCurrentCase(caseData);
     setUserData(caseData.userData);
     setAppMode('chat');
+    const tramiteOptions = Object.entries(tramites).map(([id, tramite]) => ({ texto: tramite.nombre, action: id }));
     setMessages([
       {
         id: Date.now(),
@@ -1172,10 +1269,12 @@ const Chatbot = () => {
         id: Date.now() + 1,
         type: 'bot',
         content: '¿Qué trámite te gustaría realizar?',
+        options: tramiteOptions,
         timestamp: new Date(),
       },
     ]);
     setUserStep('tramites');
+    setChatStep('tramites');
   };
 
   const renderMessage = (message) => {
@@ -1203,6 +1302,7 @@ const Chatbot = () => {
             </div>
           )}
         </div>
+        {/* Mostrar opciones si existen, sin depender de chatStep ni currentTramite */}
         {message.options && (
           <div className="message-options">
             {message.options.map((option, index) => (
@@ -1222,6 +1322,8 @@ const Chatbot = () => {
                       handleDataUpdateChoice(option.action);
                     } else if (option.action === 'update_more' || option.action === 'finish_update') {
                       handleUpdateMoreChoice(option.action);
+                    } else if (tramites && tramites[option.action]) {
+                      startConversation(option.action);
                     } else {
                       handleContinueOption(option.action);
                     }
@@ -1292,7 +1394,7 @@ const Chatbot = () => {
   const renderWelcomeScreen = () => (
     <Container fluid className="chatbot-container">
       <Row className="justify-content-center">
-        <Col md={8} lg={6}>
+        <Col xs={12}>
           <Card className="chatbot-card">
             <Card.Header className="chatbot-header">
               <h4 className="mb-0">
@@ -1397,7 +1499,7 @@ const Chatbot = () => {
   const renderChat = () => (
     <Container fluid className="chatbot-container">
       <Row className="justify-content-center">
-        <Col md={8} lg={6}>
+        <Col xs={12}>
           <Card className="chatbot-card">
             <Card.Header className="chatbot-header">
               <div className="d-flex justify-content-between align-items-center">
@@ -1426,32 +1528,68 @@ const Chatbot = () => {
                   <Form onSubmit={handleUserInputSubmit} className="chat-input-form">
                     <InputGroup>
                       <Form.Control
-                        type="text"
+                        type={chatStep === 'cedula-input' || chatStep === 'new-user-cedula' ? "text" : "text"}
                         placeholder={
                           chatStep === 'cedula-input' || chatStep === 'new-user-cedula'
                             ? "Ingresa tu número de cédula..."
                             : "Escribe tu respuesta..."
                         }
                         value={inputValue}
-                        onChange={handleUserInput}
+                        onChange={e => {
+                          if (chatStep === 'cedula-input' || chatStep === 'new-user-cedula') {
+                            const val = e.target.value;
+                            // Si contiene letras, mostrar alerta
+                            if (/[^0-9]/.test(val)) {
+                              setInputError('Solo se deben ingresar números, no letras');
+                            } else {
+                              setInputError('');
+                            }
+                            // Solo permitir números y máximo 10 dígitos
+                            const soloNumeros = val.replace(/[^0-9]/g, '');
+                            if (soloNumeros.length <= 10) setInputValue(soloNumeros);
+                          } else if (chatStep === 'data-collection' || chatStep === 'data-update-field') {
+                            const currentQuestion = userQuestions[userStep];
+                            if (currentQuestion.key === 'nombre' || currentQuestion.key === 'apellido') {
+                              // Solo letras y espacios, máximo 40 caracteres
+                              const val = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ ]/g, '');
+                              if (val.length <= 40) setInputValue(val);
+                              setInputError('');
+                              return;
+                            }
+                            if (currentQuestion.key === 'telefono') {
+                              // Solo números, máximo 10 dígitos
+                              const val = e.target.value.replace(/[^0-9]/g, '');
+                              if (val.length <= 10) setInputValue(val);
+                              setInputError('');
+                              return;
+                            }
+                            // Para correo, permite cualquier valor, validación al enviar
+                            setInputValue(e.target.value);
+                            setInputError('');
+                          } else {
+                            setInputValue(e.target.value);
+                            setInputError('');
+                          }
+                        }}
                         isInvalid={!!inputError}
                         autoFocus
                         autoComplete="off"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            // Permitir enviar con Enter
-                          }
-                        }}
+                        maxLength={chatStep === 'cedula-input' || chatStep === 'new-user-cedula' ? 10 : undefined}
                       />
                       <Button variant="primary" type="submit">
                         Enviar
                       </Button>
-                      <Form.Control.Feedback type="invalid">{inputError}</Form.Control.Feedback>
                     </InputGroup>
+                    {inputError && (
+                      <Alert variant="danger" className="mt-2 mb-0 py-2 px-3" style={{ fontSize: '0.95em', borderRadius: '12px' }}>
+                        <i className="fas fa-exclamation-circle me-2"></i>
+                        {inputError}
+                      </Alert>
+                    )}
                   </Form>
                 )}
                 {/* Opciones de trámites */}
-                {chatStep === 'tramites' && !currentTramite && (
+                {chatStep === 'tramites' && !currentTramite && !messages.some(m => Array.isArray(m.options) && m.options.length > 0) && (
                   <div className="tramites-grid mt-3">
                     {Object.values(tramites).map((tramite) => (
                       <Button

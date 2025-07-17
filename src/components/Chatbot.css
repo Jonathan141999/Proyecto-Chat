@@ -1,5 +1,8 @@
 .chatbot-container {
   min-height: 100vh;
+  display: flex;
+  justify-content: center; /* Centra horizontalmente */
+  align-items: center;     /* Centra verticalmente */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px 0;
 }
@@ -9,9 +12,14 @@
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  height: 80vh;
+  max-width: 500px;
+  width: 100%;
+  min-width: 320px;
+  min-height: 600px;
+  height: auto;
   display: flex;
   flex-direction: column;
+  background: white;
 }
 
 .chatbot-header {

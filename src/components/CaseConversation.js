@@ -1,12 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Button, Badge, Modal, Spinner } from 'react-bootstrap';
-import { generateCasePDF } from '../services/firebaseService';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { getUsuarioByCedula } from '../services/firebaseService';
 import './CaseConversation.css';
 
 const CaseConversation = ({ caseData, onBack, onDownloadPDF, onContinue }) => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [usuarioCompleto, setUsuarioCompleto] = useState(caseData.userData);
+  const cardBodyRef = useRef();
+
+  useEffect(() => {
+    const fetchUsuario = async () => {
+      if (
+        (!caseData.userData?.nombre || !caseData.userData?.telefono || !caseData.userData?.correo) &&
+        caseData.userData?.cedula
+      ) {
+        const datos = await getUsuarioByCedula(caseData.userData.cedula);
+        if (datos) setUsuarioCompleto({ ...caseData.userData, ...datos });
+      }
+    };
+    fetchUsuario();
+  }, [caseData]);
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'N/A';
@@ -33,53 +50,22 @@ const CaseConversation = ({ caseData, onBack, onDownloadPDF, onContinue }) => {
   };
 
   const handleDownloadPDF = async () => {
-    setLoading(true);
+    if (!cardBodyRef.current) return;
     try {
-      const pdfData = await generateCasePDF(caseData);
-      
-      // Crear contenido del PDF
-      const pdfContent = `
-        CASO: ${pdfData.caseNumber}
-        Usuario: ${pdfData.userData.nombre} ${pdfData.userData.apellido}
-        Cédula: ${pdfData.userData.cedula}
-        Fecha: ${formatDate(pdfData.createdAt)}
-        Estado: ${pdfData.status}
-        
-        TRÁMITES REALIZADOS:
-        ${pdfData.tramites.map((tramite, index) => `
-          ${index + 1}. ${tramite.nombre}
-          - Estado: ${tramite.status}
-          - Resultado: ${tramite.result}
-          - Fecha: ${formatDate(tramite.completedAt)}
-        `).join('\n')}
-        
-        CONVERSACIONES:
-        ${pdfData.conversations.map((conv, index) => `
-          Conversación ${index + 1}:
-          - Trámite: ${conv.tramite}
-          - Resultado: ${conv.result}
-          - Fecha: ${formatDate(conv.timestamp)}
-        `).join('\n')}
-      `;
-      
-      // Crear y descargar archivo
-      const blob = new Blob([pdfContent], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Caso_${pdfData.caseNumber}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      if (onDownloadPDF) {
-        onDownloadPDF(pdfData);
-      }
+      const element = cardBodyRef.current;
+      const canvas = await html2canvas(element, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pageWidth;
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Caso-${caseData.caseNumber}.pdf`);
+      if (onDownloadPDF) onDownloadPDF();
     } catch (error) {
       console.error('Error al generar PDF:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -108,7 +94,7 @@ const CaseConversation = ({ caseData, onBack, onDownloadPDF, onContinue }) => {
             </Badge>
           </div>
         </Card.Header>
-        <Card.Body>
+        <Card.Body ref={cardBodyRef}>
           {/* Información del caso */}
           <div className="case-info-section mb-4">
             <h6>Información del Caso</h6>
@@ -119,19 +105,19 @@ const CaseConversation = ({ caseData, onBack, onDownloadPDF, onContinue }) => {
               </div>
               <div className="info-item">
                 <strong>Usuario:</strong>
-                <span>{caseData.userData?.nombre} {caseData.userData?.apellido}</span>
+                <span>{usuarioCompleto?.nombre} {usuarioCompleto?.apellido}</span>
               </div>
               <div className="info-item">
                 <strong>Cédula:</strong>
-                <span>{caseData.userData?.cedula}</span>
+                <span>{usuarioCompleto?.cedula}</span>
               </div>
               <div className="info-item">
                 <strong>Teléfono:</strong>
-                <span>{caseData.userData?.telefono}</span>
+                <span>{usuarioCompleto?.telefono}</span>
               </div>
               <div className="info-item">
                 <strong>Correo:</strong>
-                <span>{caseData.userData?.correo}</span>
+                <span>{usuarioCompleto?.correo}</span>
               </div>
               <div className="info-item">
                 <strong>Fecha de Creación:</strong>
@@ -213,32 +199,14 @@ const CaseConversation = ({ caseData, onBack, onDownloadPDF, onContinue }) => {
             </div>
           )}
 
-          {/* Acciones */}
-          <div className="case-actions">
-            <Button 
-              variant="primary" 
-              onClick={handleDownloadPDF}
-              disabled={loading}
-              className="me-2"
-            >
-              {loading ? (
-                <>
-                  <Spinner animation="border" size="sm" className="me-2" />
-                  Generando...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-download me-2"></i>
-                  Descargar PDF
-                </>
-              )}
+          {/* Botones de acción */}
+          <div className="case-actions mt-4">
+            <Button variant="primary" onClick={handleDownloadPDF} className="me-2">
+              <i className="fas fa-file-download me-2"></i>
+              Descargar PDF
             </Button>
-            {onContinue && (
-              <Button 
-                variant="success" 
-                onClick={() => onContinue(caseData)}
-                className="me-2"
-              >
+            {caseData.status === 'active' && (
+              <Button variant="success" onClick={() => onContinue(caseData)} className="me-2">
                 <i className="fas fa-play me-2"></i>
                 Continuar Caso
               </Button>
