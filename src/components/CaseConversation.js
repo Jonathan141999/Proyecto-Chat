@@ -50,22 +50,108 @@ const CaseConversation = ({ caseData, onBack, onDownloadPDF, onContinue }) => {
   };
 
   const handleDownloadPDF = async () => {
-    if (!cardBodyRef.current) return;
     try {
-      const element = cardBodyRef.current;
-      const canvas = await html2canvas(element, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      setLoading(true);
+      
+      // Crear un nuevo PDF
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pageWidth;
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Caso-${caseData.caseNumber}.pdf`);
+      const margin = 20;
+      const contentWidth = pageWidth - (margin * 2);
+      
+      let yPosition = margin;
+      
+      // Función para agregar texto con salto de línea automático
+      const addText = (text, fontSize = 12, isBold = false, color = [0, 0, 0]) => {
+        pdf.setFontSize(fontSize);
+        pdf.setTextColor(...color);
+        if (isBold) pdf.setFont(undefined, 'bold');
+        else pdf.setFont(undefined, 'normal');
+        
+        const lines = pdf.splitTextToSize(text, contentWidth);
+        if (yPosition + (lines.length * fontSize * 0.4) > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        
+        pdf.text(lines, margin, yPosition);
+        yPosition += lines.length * fontSize * 0.4 + 5;
+      };
+      
+      // Título principal
+      addText('REPORTE DE CASO MUNICIPAL', 18, true, [102, 126, 234]);
+      addText('', 12);
+      
+      // Información del caso
+      addText('INFORMACIÓN DEL CASO', 14, true, [102, 126, 234]);
+      addText(`Número de Caso: ${caseData.caseNumber}`, 12, true);
+      addText(`Usuario: ${usuarioCompleto?.nombre} ${usuarioCompleto?.apellido}`, 12);
+      addText(`Cédula: ${usuarioCompleto?.cedula}`, 12);
+      addText(`Teléfono: ${usuarioCompleto?.telefono}`, 12);
+      addText(`Correo: ${usuarioCompleto?.correo}`, 12);
+      addText(`Fecha de Creación: ${formatDate(caseData.createdAt)}`, 12);
+      addText(`Última Interacción: ${formatDate(caseData.lastInteraction)}`, 12);
+      addText(`Estado: ${getStatusBadge(caseData.status).text}`, 12);
+      addText(`Total de Trámites: ${caseData.totalTramites || 0}`, 12);
+      addText('', 12);
+      
+      // Trámites realizados
+      if (caseData.tramites && caseData.tramites.length > 0) {
+        addText('TRÁMITES REALIZADOS', 14, true, [102, 126, 234]);
+        caseData.tramites.forEach((tramite, index) => {
+          addText(`Trámite #${index + 1}: ${tramite.nombre}`, 12, true);
+          addText(`Resultado: ${tramite.result}`, 12);
+          addText(`Completado: ${formatDate(tramite.completedAt)}`, 12);
+          addText('', 12);
+        });
+      }
+      
+      // Conversaciones detalladas
+      if (caseData.conversations && caseData.conversations.length > 0) {
+        addText('HISTORIAL DE CONVERSACIONES', 14, true, [102, 126, 234]);
+        
+        caseData.conversations.forEach((conversation, convIndex) => {
+          addText(`Conversación #${convIndex + 1}`, 12, true, [40, 167, 69]);
+          addText(`Trámite: ${conversation.tramite}`, 12);
+          addText(`Resultado: ${conversation.result}`, 12);
+          addText(`Fecha: ${formatDate(conversation.timestamp)}`, 12);
+          
+          // Flujo de la conversación
+          if (conversation.conversationPath && conversation.conversationPath.length > 0) {
+            addText('Flujo de la Conversación:', 12, true);
+            conversation.conversationPath.forEach((step, stepIndex) => {
+              if (step.tramite) {
+                addText(`  ${stepIndex + 1}. Trámite iniciado: ${step.tramite}`, 11);
+              }
+              if (step.questionText) {
+                addText(`  ${stepIndex + 1}. Pregunta: ${step.questionText}`, 11);
+              }
+              if (step.answer) {
+                addText(`  ${stepIndex + 1}. Respuesta: ${step.answer}`, 11);
+              }
+            });
+          }
+          addText('', 12);
+        });
+      }
+      
+      // Pie de página
+      const currentPage = pdf.getCurrentPageInfo().pageNumber;
+      const totalPages = pdf.getNumberOfPages();
+      pdf.setFontSize(10);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text(`Página ${currentPage} de ${totalPages}`, pageWidth - margin, pageHeight - 10);
+      pdf.text(`Generado el: ${new Date().toLocaleDateString('es-ES')}`, margin, pageHeight - 10);
+      
+      // Guardar el PDF
+      pdf.save(`Caso-${caseData.caseNumber}-${new Date().toISOString().split('T')[0]}.pdf`);
+      
       if (onDownloadPDF) onDownloadPDF();
     } catch (error) {
       console.error('Error al generar PDF:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -201,9 +287,23 @@ const CaseConversation = ({ caseData, onBack, onDownloadPDF, onContinue }) => {
 
           {/* Botones de acción */}
           <div className="case-actions mt-4">
-            <Button variant="primary" onClick={handleDownloadPDF} className="me-2">
-              <i className="fas fa-file-download me-2"></i>
-              Descargar PDF
+            <Button 
+              variant="primary" 
+              onClick={handleDownloadPDF} 
+              className="me-2"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Generando PDF...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-file-download me-2"></i>
+                  Descargar PDF
+                </>
+              )}
             </Button>
             {caseData.status === 'active' && (
               <Button variant="success" onClick={() => onContinue(caseData)} className="me-2">
@@ -249,7 +349,8 @@ const CaseConversation = ({ caseData, onBack, onDownloadPDF, onContinue }) => {
                         <div className="step-number">{index + 1}</div>
                         <div className="step-content">
                           {step.tramite && <strong>Trámite iniciado: {step.tramite}</strong>}
-                          {step.question && <span>Pregunta #{step.question}</span>}
+                          {step.question && step.questionText && <span>{step.questionText}</span>}
+                          {step.question && !step.questionText && <span>Pregunta #{step.question}</span>}
                           {step.answer && <span>Respuesta: {step.answer}</span>}
                         </div>
                       </div>

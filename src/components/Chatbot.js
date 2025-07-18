@@ -334,7 +334,7 @@ const Chatbot = () => {
     const tramite = tramites[tramiteId];
     const firstQuestion = tramite.preguntas[0];
     setCurrentTramite(tramite);
-    setConversationPath([{ tramite: tramiteId, question: 1 }]);
+    setConversationPath([{ tramite: tramiteId, question: 1, questionText: firstQuestion.pregunta }]);
     trackTramiteSelection(tramiteId, tramite.nombre);
     trackConversationStart(tramiteId);
     const welcomeMessage = {
@@ -432,7 +432,7 @@ const Chatbot = () => {
     }
     const nextQuestion = currentTramite.preguntas.find((q) => q.id === option.siguiente);
     if (nextQuestion) {
-      setConversationPath((prev) => [...prev, { question: nextQuestion.id }]);
+      setConversationPath((prev) => [...prev, { question: nextQuestion.id, questionText: nextQuestion.pregunta }]);
       const questionMessage = {
         id: Date.now() + 1,
         type: 'bot',
@@ -1222,6 +1222,7 @@ const Chatbot = () => {
         setCaseNumber(newCaseNumber);
         setToastMessage(`Datos actualizados:\nTeléfono: ${usuarioActualizado.telefono}\nCorreo: ${usuarioActualizado.correo}`);
         setShowToast(true);
+        const tramiteOptions = Object.entries(tramites).map(([id, tramite]) => ({ texto: tramite.nombre, action: id }));
         setTimeout(() => {
           const botMessage = {
             id: Date.now() + 1,
@@ -1233,6 +1234,7 @@ const Chatbot = () => {
             id: Date.now() + 2,
             type: 'bot',
             content: '¿Qué trámite te gustaría realizar?',
+            options: tramiteOptions,
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, botMessage, tramitesMessage]);
@@ -1242,11 +1244,13 @@ const Chatbot = () => {
       } else {
         setToastMessage('No se encontró el usuario actual para actualizar.');
         setShowToast(true);
+        const tramiteOptions = Object.entries(tramites).map(([id, tramite]) => ({ texto: tramite.nombre, action: id }));
         setTimeout(() => {
           const tramitesMessage = {
             id: Date.now() + 2,
             type: 'bot',
             content: '¿Qué trámite te gustaría realizar?',
+            options: tramiteOptions,
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, tramitesMessage]);
@@ -1499,7 +1503,7 @@ const Chatbot = () => {
   const renderCaseConversation = () => (
     <CaseConversation 
       caseData={selectedCaseForConversation}
-      onBack={goBackToWelcome}
+      onBack={() => setAppMode('cedula-search')}
       onDownloadPDF={handleDownloadPDF}
       onContinue={handleContinueFromConversation}
     />
