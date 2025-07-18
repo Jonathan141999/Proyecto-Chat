@@ -475,6 +475,7 @@ const Chatbot = () => {
         setCaseNumber(newCaseNumber);
         setUserData(usuarioActualizado);
         setChatStep('tramites');
+        const tramiteOptions = Object.entries(tramites).map(([id, tramite]) => ({ texto: tramite.nombre, action: id }));
         setTimeout(() => {
           const botMessage = {
             id: Date.now() + 1,
@@ -482,7 +483,14 @@ const Chatbot = () => {
             content: `¡Perfecto! Bienvenido ${getNombreSeguro(usuarioActualizado)} ${getApellidoSeguro(usuarioActualizado)}. Caso: ${newCaseNumber}`,
             timestamp: new Date(),
           };
-          setMessages((prev) => [...prev, botMessage]);
+          const tramitesMessage = {
+            id: Date.now() + 2,
+            type: 'bot',
+            content: '¿Qué trámite te gustaría realizar?',
+            options: tramiteOptions,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, botMessage, tramitesMessage]);
           setCurrentTramite(null);
           setIsComplete(false);
           setUserStep('tramites');
@@ -883,17 +891,17 @@ const Chatbot = () => {
             content: `¡Perfecto! Bienvenido ${getNombreSeguro(usuarioActualizado)} ${getApellidoSeguro(usuarioActualizado)}. Nuevo caso creado: ${newCaseNumber}`,
             timestamp: new Date(),
           };
-          setMessages((prev) => [...prev, botMessage]);
-          setTimeout(() => {
-            const tramitesMessage = {
-              id: Date.now() + 2,
-              type: 'bot',
-              content: '¿Qué trámite te gustaría realizar?',
-              options: tramiteOptions,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, tramitesMessage]);
-          }, 1000);
+          const tramitesMessage = {
+            id: Date.now() + 2,
+            type: 'bot',
+            content: '¿Qué trámite te gustaría realizar?',
+            options: tramiteOptions,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, botMessage, tramitesMessage]);
+          setCurrentTramite(null);
+          setIsComplete(false);
+          setUserStep('tramites');
         }, 500);
       } catch (error) {
         console.error('Error al crear caso:', error);
@@ -1151,6 +1159,7 @@ const Chatbot = () => {
         } catch (error) {
           console.error('Error al crear caso:', error);
           setChatStep('tramites');
+          const tramiteOptions = Object.entries(tramites).map(([id, tramite]) => ({ texto: tramite.nombre, action: id }));
           setTimeout(() => {
             setMessages((prev) => [
               ...prev,
@@ -1158,6 +1167,7 @@ const Chatbot = () => {
                 id: Date.now() + 2,
                 type: 'bot',
                 content: `¡Hola ${getNombreSeguro(newUserData)} ${getApellidoSeguro(newUserData)}! Por favor, selecciona el trámite que deseas realizar.`,
+                options: tramiteOptions,
                 timestamp: new Date(),
               },
             ]);
